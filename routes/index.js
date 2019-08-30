@@ -2,14 +2,16 @@ var express = require('express');
 var router = express.Router();
 var cors = require('cors');
 var axios = require('axios');
-var mongoose = require('mongoose');
+const mongoose = require('mongoose');
 var _ = require('lodash');
 
 var User = require('../models/User');
 var Meetups = require('../models/Meetups');
 
 const DB_URL = "mongodb://Admin:dbymadmin123@ds135061.mlab.com:35061/dbym-db"
-mongoose.connect(DB_URL);
+
+mongoose.set('useCreateIndex', true);
+mongoose.connect(DB_URL, { useNewUrlParser: true });
 
 const DB = mongoose.connection;
 
@@ -19,7 +21,7 @@ DB.once('open', function () {
 
 const getCentroid = function (coord) {
 	var center = coord.reduce(function (x,y) {
-		return [x[0] + y[0]/coord.length, x[1] + y[1]/coord.length] 
+		return [x[0] + y[0]/coord.length, x[1] + y[1]/coord.length]
 	}, [0,0])
 	return center;
 };
@@ -31,7 +33,7 @@ const getNearest = function (center, hotplCoords) {
     (Math.pow(center[0]-hotplCoords[0][0])) +
     (Math.pow(center[1]-hotplCoords[0][1]))
   );
-  
+
   if(hotplCoords.length === 1){
     return nearest;
   }
@@ -218,7 +220,7 @@ router.get('/meetups/:fbId', cors(), function (req, res, next) {
     if(user) {
       let uOid = user._id;
       meetups = _.map(user.MeetUpsList);
-      
+
       if(meetups.length === 0){
         res.status(200).json([]);
       } else {
@@ -315,7 +317,7 @@ router.post('/meetups', cors(), function (req, res, next) {
         //비동기.. 핫플에 대한 모든 좌표를 받아왔을 경우에 진행
         if (req.body.hotPlaces.length === placeList.length) {
           newMeetups.HotPlaces = placeList;
-        
+
           //새 meetups 저장
           newMeetups.save(function(err, result) {
             if(err) {
@@ -371,7 +373,7 @@ router.post('/meetups/setloca/:mId', cors(), async (req, res, next) => {
   const lat = req.body.lat;
   const lng = req.body.lng;
   const membersLocation = [];
-  
+
   User.findOne({UserFbId: userId}, function (err, user) {
     if(user) {
       let index = user.MeetUpsList.map(function (o) {
@@ -415,7 +417,7 @@ router.post('/meetups/setloca/:mId', cors(), async (req, res, next) => {
                   }
                   count ++;
                 }
-                
+
                 if(trueCount === members.length){
                   console.log("모든 사용자가 입력하였습니다");
                   mu.isAllInputSet = true;
@@ -432,7 +434,7 @@ router.post('/meetups/setloca/:mId', cors(), async (req, res, next) => {
                   let centerLocation = getCentroid(memberLocationArr);
                   //핫플레이스 중 가장 가까운 지점 저장
                   let place = getNearest(centerLocation, places);
-                  
+
                   mu.Place = place;
                   //let closestStation = [0,0]
                   mu.save(function (e, d) {
